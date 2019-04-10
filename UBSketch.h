@@ -63,6 +63,11 @@ public:
 			int index = index_start[i] + (hash[i]->run(key.c_str(), KEY_LEN) % row_length[i]);
 			if (counters[index] != (1 << counter_size[i]) - 1) {
 				ret = min(ret, counters[index]);
+				if (counters[index] >= (1 << counter_size[i])) {
+					cerr << "UB SKETCH ERROR, press Enter." << endl;
+					cin.get();
+					exit(-1);
+				}
 			}
 		}
 		if (ret == INT_MAX) {

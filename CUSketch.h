@@ -1,5 +1,5 @@
-#ifndef _CMSKETCH_H
-#define _CMSKETCH_H
+#ifndef _CUSKETCH_H
+#define _CUSKETCH_H
 
 #include "paras.h"
 #include "BOBHash32.h"
@@ -12,14 +12,14 @@
 using namespace std;
 
 template <int memory_in_bytes, int d>
-class CMSketch
+class CUSketch
 {
 private:
 	static constexpr int w = memory_in_bytes * 8 / BITS_PER_BUCKET;
 	BOBHash32 * hash[d];
 public:
 	static int counters[MAX_ARRAY_LEN];
-	CMSketch()
+	CUSketch()
 	{
 		memset(counters, 0, MAX_ARRAY_LEN * sizeof(int));
 		for (int i = 0; i < d; i++)
@@ -28,12 +28,12 @@ public:
 
 	void print_basic_info()
 	{
-		printf("CM sketch\n");
+		printf("CU sketch\n");
 		printf("\tCounters: %d\n", w);
 		printf("\tMemory: %.6lfMB\n", w * 4.0 / 1024 / 1024);
 	}
 
-	~CMSketch()
+	~CUSketch()
 	{
 		for (int i = 0; i < d; i++)
 			delete hash[i];
@@ -41,12 +41,29 @@ public:
 
 	void insert(string key, int f)
 	{
-		for (int i = 0; i < d; i++) {
-			int index = (hash[i]->run(key.c_str(), KEY_LEN)) % w;
-			counters[index] += f;
-			if (counters[index] >= (1 << BITS_PER_BUCKET)) {
-				counters[index] = (1 << BITS_PER_BUCKET) - 1;
+		for (int i = 0; i < f; i++) {
+			int index = 0;
+			int ret = INT_MAX;
+			for (int j = 0; j < d; j++) {
+				int tmp_index = (hash[j]->run(key.c_str(), KEY_LEN)) % w;
+				if (counters[tmp_index] < ret) {
+					ret = counters[tmp_index];
+					index = tmp_index;
+				}
 			}
+			int tmp_value = counters[index];
+
+			for (int j = 0; j < d; j++) {
+				int tmp_index = (hash[j]->run(key.c_str(), KEY_LEN)) % w;
+				
+				if (counters[tmp_index] == tmp_value) {
+					counters[tmp_index] ++;
+					if (counters[tmp_index] >= (1 << BITS_PER_BUCKET)) {
+						counters[tmp_index] = (1 << BITS_PER_BUCKET) - 1;
+					}
+				}
+			}
+
 		}
 	}
 
@@ -71,7 +88,7 @@ public:
 			int q_ret = query(key.first);
 			int true_ret = ground[key.first];
 			if (q_ret < true_ret) {
-				cerr << "CM SKETCH ERROR, press Enter." << endl;
+				cerr << "CU SKETCH ERROR, press Enter." << endl;
 				cin.get();
 				exit(-1);
 			}
@@ -83,12 +100,12 @@ public:
 		result.clear();
 		result.push_back(aae); result.push_back(are);
 
-		cout << "CM: AAE:" << aae << ", ARE:" << are << endl;
+		cout << "CU: AAE:" << aae << ", ARE:" << are << endl;
 	}
 
 };
 
 template <int memory_in_bytes, int d>
-int CMSketch<memory_in_bytes, d>::counters[MAX_ARRAY_LEN];
+int CUSketch<memory_in_bytes, d>::counters[MAX_ARRAY_LEN];
 
-#endif //_CMSKETCH_H
+#endif //_CUSKETCH_H
