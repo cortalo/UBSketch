@@ -18,7 +18,10 @@ private:
 	static constexpr int w = memory_in_bytes * 8 / BITS_PER_BUCKET;
 	BOBHash32 * hash[d];
 public:
-	static int counters[MAX_ARRAY_LEN];
+	static uint32_t counters[MAX_ARRAY_LEN];
+	void clear() {
+		memset(counters, 0, MAX_ARRAY_LEN * sizeof(int));
+	}
 	CMSketch()
 	{
 		memset(counters, 0, MAX_ARRAY_LEN * sizeof(int));
@@ -44,8 +47,11 @@ public:
 		for (int i = 0; i < d; i++) {
 			int index = (hash[i]->run(key.c_str(), KEY_LEN)) % w;
 			counters[index] += f;
-			if (counters[index] >= (1 << BITS_PER_BUCKET)) {
-				counters[index] = (1 << BITS_PER_BUCKET) - 1;
+			if (BITS_PER_BUCKET != 32)
+			{
+				if (counters[index] >= (1 << BITS_PER_BUCKET)) {
+					counters[index] = (1 << BITS_PER_BUCKET) - 1;
+				}
 			}
 		}
 	}
@@ -67,28 +73,32 @@ public:
 
 		double aae = 0;
 		double are = 0;
+		double precision = 0;
 		for (auto key : ground) {
 			int q_ret = query(key.first);
 			int true_ret = ground[key.first];
 			if (q_ret < true_ret) {
-				cerr << "CM SKETCH ERROR, press Enter." << endl;
-				cin.get();
+				cerr << "CM SKETCH ERROR" << endl;
 				exit(-1);
 			}
 			aae = aae + q_ret - true_ret;
 			are = are + (q_ret - true_ret) / true_ret;
+			if (q_ret == true_ret) {
+				precision++;
+			}
 		}
 		aae = aae / ground.size();
 		are = are / ground.size();
+		precision = precision / ground.size();
 		result.clear();
-		result.push_back(aae); result.push_back(are);
+		result.push_back(aae); result.push_back(are); result.push_back(precision);
 
-		cout << "CM: AAE:" << aae << ", ARE:" << are << endl;
+		//cout << "UB: AAE:" << aae << ", ARE:" << are << endl;
 	}
 
 };
 
 template <int memory_in_bytes, int d>
-int CMSketch<memory_in_bytes, d>::counters[MAX_ARRAY_LEN];
+uint32_t CMSketch<memory_in_bytes, d>::counters[MAX_ARRAY_LEN];
 
 #endif //_CMSKETCH_H

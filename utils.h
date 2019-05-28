@@ -13,16 +13,17 @@
 using namespace std;
 
 void load_data(vector<string>& str_data ,unordered_map<string, uint32_t>& ground, const char* filename) {
-	FILE *pf = fopen(filename, "rb");
+	FILE *pf;
+	fopen_s(&pf ,filename, "rb");
 	if (!pf) {
 		cerr << filename << "not found." << endl;
 		exit(-1);
 	}
 	ground.clear();
 	str_data.clear();
-	char key[KEY_LEN];
+	char key[READ_LEN];
 	uint32_t ret = 0;
-	while (fread(key, 1, KEY_LEN, pf)) {
+	while (fread(key, 1, READ_LEN, pf)) {
 		string str_key(key, KEY_LEN);
 		str_data.push_back(str_key);
 		ground[str_key]++;
@@ -34,5 +35,7 @@ void load_data(vector<string>& str_data ,unordered_map<string, uint32_t>& ground
 
 	printf("load %d items, %lu distinct items\n", ret, ground.size());
 }
+
+
 
 #endif

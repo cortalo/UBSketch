@@ -21,6 +21,9 @@ private:
 	BOBHash32 * hash[d];
 public:
 	static int counters[MAX_ARRAY_LEN];
+	void clear() {
+		memset(counters, 0, MAX_ARRAY_LEN * sizeof(int));
+	}
 	UBSketch() {
 		memset(counters, 0, MAX_ARRAY_LEN * sizeof(int));
 		for (int i = 0; i < d; i++)
@@ -50,9 +53,10 @@ public:
 		for (int i = 0; i < d; i++) {
 			int index = index_start[i] + (hash[i]->run(key.c_str(), KEY_LEN) % row_length[i]);
 			counters[index] += f;
-
-			if (counters[index] >= (1 << counter_size[i])) {
-				counters[index] = (1 << counter_size[i]) - 1;
+			if (counter_size[i] != 32) {
+				if (counters[index] >= (1 << counter_size[i])) {
+					counters[index] = (1 << counter_size[i]) - 1;
+				}
 			}
 		}
 	}
@@ -61,13 +65,18 @@ public:
 		int ret = INT_MAX;
 		for (int i = 0; i < d; i++) {
 			int index = index_start[i] + (hash[i]->run(key.c_str(), KEY_LEN) % row_length[i]);
-			if (counters[index] != (1 << counter_size[i]) - 1) {
-				ret = min(ret, counters[index]);
-				if (counters[index] >= (1 << counter_size[i])) {
-					cerr << "UB SKETCH ERROR, press Enter." << endl;
-					cin.get();
-					exit(-1);
+			if (counter_size[i] != 32) {
+				if (counters[index] != (1 << counter_size[i]) - 1) {
+					ret = min(ret, counters[index]);
+					if (counters[index] >= (1 << counter_size[i])) {
+						cerr << "UB SKETCH ERROR, press Enter." << endl;
+						cin.get();
+						exit(-1);
+					}
 				}
+			}
+			else {
+				ret = min(ret, counters[index]);
 			}
 		}
 		if (ret == INT_MAX) {
@@ -83,6 +92,7 @@ public:
 
 		double aae = 0;
 		double are = 0;
+		double precision = 0;
 		for (auto key : ground) {
 			int q_ret = query(key.first);
 			int true_ret = ground[key.first];
@@ -92,13 +102,17 @@ public:
 			}
 			aae = aae + q_ret - true_ret;
 			are = are + (q_ret - true_ret) / true_ret;
+			if (q_ret == true_ret) {
+				precision++;
+			}
 		}
 		aae = aae / ground.size();
 		are = are / ground.size();
+		precision = precision / ground.size();
 		result.clear();
-		result.push_back(aae); result.push_back(are);
+		result.push_back(aae); result.push_back(are); result.push_back(precision);
 
-		cout << "UB: AAE:" << aae << ", ARE:" << are << endl;
+		//cout << "UB: AAE:" << aae << ", ARE:" << are << endl;
 	}
 };
 

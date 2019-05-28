@@ -19,6 +19,9 @@ private:
 	BOBHash32 * hash[d];
 public:
 	static int counters[MAX_ARRAY_LEN];
+	void clear() {
+		memset(counters, 0, MAX_ARRAY_LEN * sizeof(int));
+	}
 	CUSketch()
 	{
 		memset(counters, 0, MAX_ARRAY_LEN * sizeof(int));
@@ -58,8 +61,10 @@ public:
 				
 				if (counters[tmp_index] == tmp_value) {
 					counters[tmp_index] ++;
-					if (counters[tmp_index] >= (1 << BITS_PER_BUCKET)) {
-						counters[tmp_index] = (1 << BITS_PER_BUCKET) - 1;
+					if (BITS_PER_BUCKET != 32) {
+						if (counters[tmp_index] >= (1 << BITS_PER_BUCKET)) {
+							counters[tmp_index] = (1 << BITS_PER_BUCKET) - 1;
+						}
 					}
 				}
 			}
@@ -84,23 +89,27 @@ public:
 
 		double aae = 0;
 		double are = 0;
+		double precision = 0;
 		for (auto key : ground) {
 			int q_ret = query(key.first);
 			int true_ret = ground[key.first];
 			if (q_ret < true_ret) {
-				cerr << "CU SKETCH ERROR, press Enter." << endl;
-				cin.get();
+				cerr << "CU SKETCH ERROR" << endl;
 				exit(-1);
 			}
 			aae = aae + q_ret - true_ret;
 			are = are + (q_ret - true_ret) / true_ret;
+			if (q_ret == true_ret) {
+				precision++;
+			}
 		}
 		aae = aae / ground.size();
 		are = are / ground.size();
+		precision = precision / ground.size();
 		result.clear();
-		result.push_back(aae); result.push_back(are);
+		result.push_back(aae); result.push_back(are); result.push_back(precision);
 
-		cout << "CU: AAE:" << aae << ", ARE:" << are << endl;
+		//cout << "UB: AAE:" << aae << ", ARE:" << are << endl;
 	}
 
 };
