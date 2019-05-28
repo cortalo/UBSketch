@@ -60,6 +60,23 @@ public:
 			}
 		}
 	}
+
+	void level_insert(string key, int f) {
+		for (int i = 0; i < d; i++) {
+			int index = index_start[i] + (hash[i]->run(key.c_str(), KEY_LEN) % row_length[i]);
+			counters[index] += f;
+			if (counter_size[i] != 32) {
+				if (counters[index] >= (1 << counter_size[i])) {
+					counters[index] = (1 << counter_size[i]) - 1;
+					continue;
+				}
+				else {
+					break;
+				}
+			}
+		}
+	}
+
 	
 	int query(string key) {
 		int ret = INT_MAX;
