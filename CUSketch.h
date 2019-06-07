@@ -11,11 +11,11 @@
 
 using namespace std;
 
-template <int memory_in_bytes, int d>
+template <int memory_in_MB, int d>
 class CUSketch
 {
 private:
-	static constexpr int w = memory_in_bytes * 8 / BITS_PER_BUCKET;
+	static constexpr int w = memory_in_MB * 1000000 * 8 / BITS_PER_BUCKET;
 	BOBHash32 * hash[d];
 public:
 	static int counters[MAX_ARRAY_LEN];
@@ -114,7 +114,7 @@ public:
 
 };
 
-template <int memory_in_bytes, int d>
-int CUSketch<memory_in_bytes, d>::counters[MAX_ARRAY_LEN];
+template <int memory_in_MB, int d>
+int CUSketch<memory_in_MB, d>::counters[MAX_ARRAY_LEN];
 
 #endif //_CUSKETCH_H

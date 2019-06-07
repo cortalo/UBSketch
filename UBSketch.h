@@ -11,22 +11,24 @@
 
 using namespace std;
 
-template <int memory_in_bytes, int d>
+template <int memory_in_MB, int d, int hash_num_row, int hash_num_all>
 class UBSketch
 {
 private:
 	vector<int> index_start;
 	vector<int> row_length;
 	vector<int> counter_size;
-	BOBHash32 * hash[d];
+	BOBHash32 * hash[hash_num_all];
+	int memory_in_bytes;
 public:
 	static int counters[MAX_ARRAY_LEN];
 	void clear() {
 		memset(counters, 0, MAX_ARRAY_LEN * sizeof(int));
 	}
 	UBSketch() {
+		memory_in_bytes = memory_in_MB * 1000000;
 		memset(counters, 0, MAX_ARRAY_LEN * sizeof(int));
-		for (int i = 0; i < d; i++)
+		for (int i = 0; i < hash_num_all; i++)
 			hash[i] = new BOBHash32(i + 750);
 		counter_size.clear();
 		counter_size.push_back(2);
@@ -45,17 +47,19 @@ public:
 		
 	}
 	~UBSketch() {
-		for (int i = 0; i < d; i++)
+		for (int i = 0; i < hash_num_all; i++)
 			delete hash[i];
 	}
 	
 	void insert(string key, int f) {
 		for (int i = 0; i < d; i++) {
-			int index = index_start[i] + (hash[i]->run(key.c_str(), KEY_LEN) % row_length[i]);
-			counters[index] += f;
-			if (counter_size[i] != 32) {
-				if (counters[index] >= (1 << counter_size[i])) {
-					counters[index] = (1 << counter_size[i]) - 1;
+			for (int i_hash = 0; i_hash < hash_num_row; i_hash++) {
+				int index = index_start[i] + (hash[i_hash + i * hash_num_row]->run(key.c_str(), KEY_LEN) % row_length[i]);
+				counters[index] += f;
+				if (counter_size[i] != 32) {
+					if (counters[index] >= (1 << counter_size[i])) {
+						counters[index] = (1 << counter_size[i]) - 1;
+					}
 				}
 			}
 		}
@@ -64,19 +68,21 @@ public:
 	int query(string key) {
 		int ret = INT_MAX;
 		for (int i = 0; i < d; i++) {
-			int index = index_start[i] + (hash[i]->run(key.c_str(), KEY_LEN) % row_length[i]);
-			if (counter_size[i] != 32) {
-				if (counters[index] != (1 << counter_size[i]) - 1) {
-					ret = min(ret, counters[index]);
-					if (counters[index] >= (1 << counter_size[i])) {
-						cerr << "UB SKETCH ERROR, press Enter." << endl;
-						cin.get();
-						exit(-1);
+			for (int i_hash = 0; i_hash < hash_num_row; i_hash++) {
+				int index = index_start[i] + (hash[i_hash + i * hash_num_row]->run(key.c_str(), KEY_LEN) % row_length[i]);
+				if (counter_size[i] != 32) {
+					if (counters[index] != (1 << counter_size[i]) - 1) {
+						ret = min(ret, counters[index]);
+						if (counters[index] >= (1 << counter_size[i])) {
+							cerr << "UB SKETCH ERROR, press Enter." << endl;
+							cin.get();
+							exit(-1);
+						}
 					}
 				}
-			}
-			else {
-				ret = min(ret, counters[index]);
+				else {
+					ret = min(ret, counters[index]);
+				}
 			}
 		}
 		if (ret == INT_MAX) {
@@ -116,8 +122,8 @@ public:
 	}
 };
 
-template <int memory_in_bytes, int d>
-int UBSketch<memory_in_bytes, d>::counters[MAX_ARRAY_LEN];
+template <int memory_in_MB, int d, int hash_num_row, int hash_num_all>
+int UBSketch<memory_in_MB, d, hash_num_row, hash_num_all>::counters[MAX_ARRAY_LEN];
 
 #endif // !_UBSKETCH_H
 

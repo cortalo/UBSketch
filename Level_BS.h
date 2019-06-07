@@ -11,22 +11,24 @@
 
 using namespace std;
 
-template <int memory_in_bytes, int d>
+template <int memory_in_MB, int d, int hash_num_row, int hash_num_all>
 class LBSketch
 {
 private:
 	vector<int> index_start;
 	vector<int> row_length;
 	vector<int> counter_size;
-	BOBHash32* hash[d];
+	BOBHash32* hash[hash_num_all];
+	int memory_in_bytes;
 public:
 	static int counters[MAX_ARRAY_LEN];
 	void clear() {
 		memset(counters, 0, MAX_ARRAY_LEN * sizeof(int));
 	}
-	UBSketch() {
+	LBSketch() {
+		memory_in_bytes = memory_in_MB * 1000000;
 		memset(counters, 0, MAX_ARRAY_LEN * sizeof(int));
-		for (int i = 0; i < d; i++)
+		for (int i = 0; i < hash_num_all; i++)
 			hash[i] = new BOBHash32(i + 750);
 		counter_size.clear();
 		counter_size.push_back(2);
@@ -44,14 +46,42 @@ public:
 		}
 
 	}
-	~UBSketch() {
-		for (int i = 0; i < d; i++)
+	~LBSketch() {
+		for (int i = 0; i < hash_num_all; i++)
 			delete hash[i];
 	}
+	/*
+	void insert(string key, int f) {
+		for (int i = 0; i < d; i++) {
+			bool all_overflow = true;
+			for (int i_hash = 0; i_hash < hash_num_row; i_hash++) {
+				int index = index_start[i] + (hash[i_hash + i * hash_num_row]->run(key.c_str(), KEY_LEN) % row_length[i]);
+				counters[index] += f;
+				if (counter_size[i] != 32) {
+					if (counters[index] >= (1 << counter_size[i])) {
+						counters[index] = (1 << counter_size[i]) - 1;
+					}
+					else {
+						all_overflow = false;
+					}
+				}
+			}
+			if (all_overflow) {
+				continue;
+			}
+			else {
+				break;
+			}
+		}
+	}*/
 
+	
 	void insert(string key, int f) {
 		for (int i = 0; i < d; i++) {
 			int index = index_start[i] + (hash[i]->run(key.c_str(), KEY_LEN) % row_length[i]);
+			if (index == 1052044) {
+				cout << "debug";
+			}
 			counters[index] += f;
 			if (counter_size[i] != 32) {
 				if (counters[index] >= (1 << counter_size[i])) {
@@ -85,11 +115,44 @@ public:
 				}
 			}
 		}
-		if (ret == INT_MAX) {
-			ret = (1 << counter_size[d]) - 1;
-		}
 		return ret;
 	}
+
+	/*
+	int query(string key) {
+		int ret = 0;
+		for (int i = 0; i < d; i++) {
+			bool all_overflow = true;
+			for (int i_hash = 0; i_hash < hash_num_row; i_hash++) {
+				int index = index_start[i] + (hash[i_hash + i * hash_num_row]->run(key.c_str(), KEY_LEN) % row_length[i]);
+				if (counter_size[i] != 32) {
+					if (counters[index] != (1 << counter_size[i]) - 1) {
+						if (counters[index] >= (1 << counter_size[i])) {
+							cerr << "UB SKETCH ERROR, press Enter." << endl;
+							cin.get();
+							exit(-1);
+						}
+						all_overflow = false;
+						ret = ret + counters[index];
+						break;
+					}
+				}
+				else {
+					ret = ret + counters[index];
+					break;
+				}
+			}
+			if (all_overflow) {
+				int index = index_start[i] + (hash[0 + i * hash_num_row]->run(key.c_str(), KEY_LEN) % row_length[i]);
+				ret = ret + counters[index];
+			}
+			else {
+				break;
+			}
+		}
+
+		return ret;
+	}*/
 
 	void exp_res(vector<string>& data, unordered_map<string, uint32_t>& ground, vector<double>& result) {
 		for (auto key : data) {
@@ -99,7 +162,12 @@ public:
 		double aae = 0;
 		double are = 0;
 		double precision = 0;
+		/******debug******/
+		int key_index = 0;
 		for (auto key : ground) {
+			if (key_index == 99) {
+				cout << "debug";
+			}
 			int q_ret = query(key.first);
 			int true_ret = ground[key.first];
 			if (q_ret < true_ret) {
@@ -111,6 +179,8 @@ public:
 			if (q_ret == true_ret) {
 				precision++;
 			}
+
+			key_index++;
 		}
 		aae = aae / ground.size();
 		are = are / ground.size();
@@ -122,8 +192,8 @@ public:
 	}
 };
 
-template <int memory_in_bytes, int d>
-int LBSketch<memory_in_bytes, d>::counters[MAX_ARRAY_LEN];
+template <int memory_in_MB, int d, int hash_num_row, int hash_num_all>
+int LBSketch<memory_in_MB, d, hash_num_row, hash_num_all>::counters[MAX_ARRAY_LEN];
 
 #endif // !_LEVEL_BS_H
 
