@@ -47,12 +47,6 @@ public:
 		for (int i = 0; i < d; i++) {
 			int index = (hash[i]->run(key.c_str(), KEY_LEN)) % w;
 			counters[index] += f;
-			if (BITS_PER_BUCKET != 32)
-			{
-				if (counters[index] >= (1 << BITS_PER_BUCKET)) {
-					counters[index] = (1 << BITS_PER_BUCKET) - 1;
-				}
-			}
 		}
 	}
 
@@ -65,6 +59,8 @@ public:
 		}
 		return ret;
 	}
+
+
 
 	void exp_res(vector<string> &data, unordered_map<string, uint32_t>& ground, vector<double>& result) {
 		for (auto key : data) {
