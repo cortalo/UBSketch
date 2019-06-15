@@ -4,18 +4,16 @@
 #include "paras.h"
 #include "BOBHash32.h"
 #include <string>
-#include <algorithm>
-#include <vector>
-#include <unordered_map>
 #include <iostream>
+#include <memory.h>
 
 using namespace std;
 
-template <int memory_in_MB, int d>
+template <int memory_in_bytes, int d>
 class CMSketch
 {
 private:
-	static constexpr int w = memory_in_MB * 1000000 * 8 / BITS_PER_BUCKET;
+	static constexpr int w = memory_in_bytes * 8 / BITS_PER_BUCKET;
 	BOBHash32 * hash[d];
 public:
 	static uint32_t counters[MAX_ARRAY_LEN];
@@ -52,7 +50,7 @@ public:
 
 	int query(string key)
 	{
-		int ret = INT_MAX;
+		int ret = (1 << 30);
 		for (int i = 0; i < d; i++) {
 			int tmp = counters[(hash[i]->run(key.c_str(), KEY_LEN)) % w];
 			ret = min(ret, tmp);
@@ -61,40 +59,9 @@ public:
 	}
 
 
-
-	void exp_res(vector<string> &data, unordered_map<string, uint32_t>& ground, vector<double>& result) {
-		for (auto key : data) {
-			insert(key, 1);
-		}
-
-		double aae = 0;
-		double are = 0;
-		double precision = 0;
-		for (auto key : ground) {
-			int q_ret = query(key.first);
-			int true_ret = ground[key.first];
-			if (q_ret < true_ret) {
-				cerr << "CM SKETCH ERROR" << endl;
-				exit(-1);
-			}
-			aae = aae + q_ret - true_ret;
-			are = are + (q_ret - true_ret) / true_ret;
-			if (q_ret == true_ret) {
-				precision++;
-			}
-		}
-		aae = aae / ground.size();
-		are = are / ground.size();
-		precision = precision / ground.size();
-		result.clear();
-		result.push_back(aae); result.push_back(are); result.push_back(precision);
-
-		//cout << "UB: AAE:" << aae << ", ARE:" << are << endl;
-	}
-
 };
 
-template <int memory_in_MB, int d>
-uint32_t CMSketch<memory_in_MB, d>::counters[MAX_ARRAY_LEN];
+template <int memory_in_bytes, int d>
+uint32_t CMSketch<memory_in_bytes, d>::counters[MAX_ARRAY_LEN];
 
 #endif //_CMSKETCH_H

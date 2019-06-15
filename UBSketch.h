@@ -4,14 +4,12 @@
 #include "paras.h"
 #include "BOBHash32.h"
 #include <string>
-#include <algorithm>
-#include <vector>
-#include <unordered_map>
 #include <iostream>
+#include <memory.h>
 
 using namespace std;
 
-template <int memory_in_MB, int d, int hash_num_row, int hash_num_all>
+template <int memory_in_bytes, int d, int hash_num_row, int hash_num_all>
 class UBSketch
 {
 private:
@@ -19,14 +17,12 @@ private:
 	vector<int> row_length;
 	vector<int> counter_size;
 	BOBHash32 * hash[hash_num_all];
-	int memory_in_bytes;
 public:
 	static int counters[MAX_ARRAY_LEN];
 	void clear() {
 		memset(counters, 0, MAX_ARRAY_LEN * sizeof(int));
 	}
 	UBSketch() {
-		memory_in_bytes = memory_in_MB * 1000000;
 		memset(counters, 0, MAX_ARRAY_LEN * sizeof(int));
 		for (int i = 0; i < hash_num_all; i++)
 			hash[i] = new BOBHash32(i + 750);
@@ -66,7 +62,7 @@ public:
 	}
 	
 	int query(string key) {
-		int ret = INT_MAX;
+		int ret = (1 << 30);
 		for (int i = 0; i < d; i++) {
 			for (int i_hash = 0; i_hash < hash_num_row; i_hash++) {
 				int index = index_start[i] + (hash[i_hash + i * hash_num_row]->run(key.c_str(), KEY_LEN) % row_length[i]);
@@ -85,45 +81,16 @@ public:
 				}
 			}
 		}
-		if (ret == INT_MAX) {
+		if (ret == (1 << 30)) {
 			ret = (1 << counter_size[d]) - 1;
 		}
 		return ret;
 	}
 
-	void exp_res(vector<string> &data, unordered_map<string, uint32_t>& ground, vector<double>& result) {
-		for (auto key : data) {
-			insert(key, 1);
-		}
-
-		double aae = 0;
-		double are = 0;
-		double precision = 0;
-		for (auto key : ground) {
-			int q_ret = query(key.first);
-			int true_ret = ground[key.first];
-			if (q_ret < true_ret) {
-				cerr << "UB SKETCH ERROR" << endl;
-				exit(-1);
-			}
-			aae = aae + q_ret - true_ret;
-			are = are + (q_ret - true_ret) / true_ret;
-			if (q_ret == true_ret) {
-				precision++;
-			}
-		}
-		aae = aae / ground.size();
-		are = are / ground.size();
-		precision = precision / ground.size();
-		result.clear();
-		result.push_back(aae); result.push_back(are); result.push_back(precision);
-
-		//cout << "UB: AAE:" << aae << ", ARE:" << are << endl;
-	}
 };
 
-template <int memory_in_MB, int d, int hash_num_row, int hash_num_all>
-int UBSketch<memory_in_MB, d, hash_num_row, hash_num_all>::counters[MAX_ARRAY_LEN];
+template <int memory_in_bytes, int d, int hash_num_row, int hash_num_all>
+int UBSketch<memory_in_bytes, d, hash_num_row, hash_num_all>::counters[MAX_ARRAY_LEN];
 
 #endif // !_UBSKETCH_H
 

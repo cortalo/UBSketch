@@ -21,9 +21,34 @@ struct TestCase : public PTestCase
 	TestCase() {
 		algo = new T();
 	}
+
+	
 	void experiment(vector<string>& data, unordered_map<string, uint32_t>& ground, vector<double>& result) {
 		algo->clear();
-		algo->exp_res(data, ground, result);
+		for (auto key : data) {
+			algo->insert(key, 1);
+		}
+		double aae = 0;
+		double are = 0;
+		double precision = 0;
+		for (auto key : ground) {
+			int q_ret = algo->query(key.first);
+			int true_ret = ground[key.first];
+			if (q_ret < true_ret) {
+				cerr << "SKETCH ERROR" << endl;
+				exit(-1);
+			}
+			aae = aae + q_ret - true_ret;
+			are = are + (q_ret - true_ret) / true_ret;
+			if (q_ret == true_ret) {
+				precision++;
+			}
+		}
+		aae = aae / ground.size();
+		are = are / ground.size();
+		precision = precision / ground.size();
+		result.clear();
+		result.push_back(aae); result.push_back(are); result.push_back(precision);
 	}
 };
 
@@ -44,12 +69,11 @@ int main() {
 	};
 	const int hash_num_row = 1;
 	const int hash_num_all = 5;
-	const int memory_in_MB = 6;
-	int memory_in_byte = memory_in_MB * 1000000;
+	const int memory_in_byte =  6000000;
 	vector<pair<string, PTestCase* >> tcs = {
-		make_pair("1" ,new TestCase<UBSketch<memory_in_MB * 1, 5, hash_num_row, hash_num_all>>()),
-		make_pair("2" ,new TestCase<UBSketch<memory_in_MB * 1, 5, 2 * hash_num_row, 2 * hash_num_all>>()),
-		make_pair("3" ,new TestCase<UBSketch<memory_in_MB * 1, 5, 3 * hash_num_row, 3 * hash_num_all>>()),
+		make_pair("1" ,new TestCase<UBSketch<memory_in_byte * 1, 5, hash_num_row, hash_num_all>>()),
+		make_pair("2" ,new TestCase<UBSketch<memory_in_byte * 1, 5, 2 * hash_num_row, 2 * hash_num_all>>()),
+		make_pair("3" ,new TestCase<UBSketch<memory_in_byte * 1, 5, 3 * hash_num_row, 3 * hash_num_all>>()),
 	};
 
 	ofstream aae_file;
